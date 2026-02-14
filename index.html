@@ -1,8 +1,277 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>URL</key>
-	<string>https://github.com/mmonroe28-commits/student-support/blob/main/index.html</string>
-</dict>
-</plist>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Admin Dashboard</title>
+  <style>
+    /* --- RESET & BASE --- */
+    * { margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif; }
+    body { background: #f4f5f7; color: #333; }
+
+    /* --- TOP BAR --- */
+    .top-bar {
+      display:flex; justify-content: space-between; align-items:center;
+      background:#fff; padding: 12px 24px; border-bottom:1px solid #ddd;
+      position: sticky; top:0; z-index:100;
+    }
+    .top-bar .school-name { font-weight:bold; font-size:1.2em; }
+    .top-bar .top-actions { display:flex; gap:16px; align-items:center; }
+    .top-bar .badge { background:red; color:white; border-radius:12px; padding:4px 8px; font-size:0.8em; }
+
+    /* --- SIDEBAR --- */
+    .container { display:flex; min-height:100vh; }
+    .sidebar {
+      width:220px; background:#2c3e50; color:white; display:flex; flex-direction:column;
+    }
+    .sidebar a {
+      padding:16px 20px; text-decoration:none; color:white; display:flex; align-items:center; gap:8px;
+    }
+    .sidebar a:hover, .sidebar a.active { background:#34495e; cursor:pointer; }
+
+    /* --- MAIN CONTENT --- */
+    .main { flex:1; padding:24px; }
+    .section { margin-bottom:24px; background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+
+    /* --- CARDS --- */
+    .card-container { display:flex; flex-wrap:wrap; gap:16px; }
+    .card { background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); flex:1 1 200px; min-width:200px; }
+    .card h3 { margin-bottom:8px; }
+    .card button { margin-top:8px; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; background:#3498db; color:white; }
+
+    /* --- TABLE --- */
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:12px; border-bottom:1px solid #ddd; text-align:left; }
+    th { background:#ecf0f1; }
+    .btn { padding:6px 12px; border:none; border-radius:4px; cursor:pointer; background:#3498db; color:white; margin-right:4px; }
+
+    .btn-danger { background:#e74c3c; }
+    .badge-red { background:#e74c3c; color:white; padding:2px 6px; border-radius:8px; font-size:0.8em; }
+
+    /* --- MODALS --- */
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; z-index:200; }
+    .modal-content { background:#fff; padding:24px; border-radius:8px; width:90%; max-width:500px; position:relative; }
+    .modal-content h2 { margin-bottom:16px; }
+    .modal-close { position:absolute; top:12px; right:12px; cursor:pointer; font-size:1.2em; }
+    input, select { width:100%; padding:8px; margin-bottom:12px; border:1px solid #ccc; border-radius:4px; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="school-name">Lincoln High School Admin</div>
+    <div class="top-actions">
+      <div class="badge" id="crisisCount">2 Crises</div>
+      <div class="profile-dropdown">Admin ▼</div>
+    </div>
+  </div>
+
+  <!-- CONTAINER -->
+  <div class="container">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <a class="active" onclick="showSection('overview')">🏠 Overview</a>
+      <a onclick="showSection('counselors')">👩‍🏫 Counselors</a>
+      <a onclick="showSection('students')">👨‍🎓 Students</a>
+      <a onclick="showSection('assignments')">🔁 Assignments</a>
+      <a onclick="showSection('crisis')">🚨 Crisis Monitor</a>
+      <a onclick="showSection('audit')">📜 Audit Log</a>
+      <a onclick="showSection('settings')">⚙️ Settings</a>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+
+      <!-- DASHBOARD OVERVIEW -->
+      <div class="section" id="overview">
+        <h2>Overview</h2>
+        <div class="card-container">
+          <div class="card">
+            <h3>Total Students</h3>
+            <p id="totalStudents">245</p>
+          </div>
+          <div class="card">
+            <h3>Total Counselors</h3>
+            <p id="totalCounselors">8</p>
+          </div>
+          <div class="card">
+            <h3>Open Messages</h3>
+            <p id="openMessages">12</p>
+          </div>
+          <div class="card">
+            <h3>Active Crises</h3>
+            <p id="activeCrises">2</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- COUNSELORS -->
+      <div class="section" id="counselors" style="display:none;">
+        <h2>Counselors <button class="btn" onclick="openModal('addCounselorModal')">+ Add Counselor</button></h2>
+        <div class="card-container" id="counselorCards">
+          <!-- Sample card -->
+          <div class="card">
+            <h3>Jane Smith</h3>
+            <p>Assigned Students: 45</p>
+            <p>Active Crises: 1</p>
+            <button class="btn" onclick="alert('Manage counselor clicked')">Manage</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDENTS -->
+      <div class="section" id="students" style="display:none;">
+        <h2>Students <button class="btn" onclick="openModal('addStudentModal')">+ Add Student</button></h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Grade</th>
+              <th>Counselor</th>
+              <th>Crisis</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentTable">
+            <tr>
+              <td>Alex M</td>
+              <td>10</td>
+              <td>Jane Smith</td>
+              <td><span class="badge-red">Red</span></td>
+              <td>
+                <button class="btn" onclick="alert('Assign clicked')">Assign</button>
+                <button class="btn btn-danger" onclick="alert('Archive clicked')">Archive</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ASSIGNMENTS -->
+      <div class="section" id="assignments" style="display:none;">
+        <h2>Assignments</h2>
+        <p>Drag & drop interface placeholder (to assign students to counselors)</p>
+      </div>
+
+      <!-- CRISIS MONITOR -->
+      <div class="section" id="crisis" style="display:none;">
+        <h2>Crisis Monitor</h2>
+        <div class="card-container">
+          <div class="card">
+            <h3>Alex M (Grade 10)</h3>
+            <p>Counselor: Jane Smith</p>
+            <p>Status: Unseen</p>
+            <button class="btn" onclick="alert('Mark Reviewed')">Mark Reviewed</button>
+            <button class="btn btn-danger" onclick="alert('Escalate')">Escalate</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIT LOG -->
+      <div class="section" id="audit" style="display:none;">
+        <h2>Audit Log</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>10:31 AM</td>
+              <td>Admin 1</td>
+              <td>Admin</td>
+              <td>Student Assigned</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="section" id="settings" style="display:none;">
+        <h2>Settings</h2>
+        <p>School info, notification settings, access control...</p>
+      </div>
+
+    </div> <!-- main -->
+
+  </div> <!-- container -->
+
+  <!-- MODALS -->
+  <div class="modal" id="addCounselorModal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('addCounselorModal')">&times;</span>
+      <h2>Add Counselor</h2>
+      <input type="text" placeholder="Counselor Name" id="newCounselorName">
+      <input type="email" placeholder="Email" id="newCounselorEmail">
+      <button class="btn" onclick="addCounselor()">Add Counselor</button>
+    </div>
+  </div>
+
+  <div class="modal" id="addStudentModal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('addStudentModal')">&times;</span>
+      <h2>Add Student</h2>
+      <input type="text" placeholder="Student Name" id="newStudentName">
+      <input type="number" placeholder="Grade" id="newStudentGrade">
+      <select id="newStudentCounselor">
+        <option value="Jane Smith">Jane Smith</option>
+      </select>
+      <button class="btn" onclick="addStudent()">Add Student</button>
+    </div>
+  </div>
+
+  <script>
+    // Section switching
+    function showSection(sectionId){
+      document.querySelectorAll('.main .section').forEach(sec => sec.style.display='none');
+      document.getElementById(sectionId).style.display='block';
+      document.querySelectorAll('.sidebar a').forEach(link => link.classList.remove('active'));
+      document.querySelector(`.sidebar a[onclick="showSection('${sectionId}')"]`).classList.add('active');
+    }
+
+    // Modals
+    function openModal(id){ document.getElementById(id).style.display='flex'; }
+    function closeModal(id){ document.getElementById(id).style.display='none'; }
+
+    // Demo add counselor
+    function addCounselor(){
+      const name = document.getElementById('newCounselorName').value;
+      if(!name){ alert('Enter name'); return; }
+      const container = document.getElementById('counselorCards');
+      const card = document.createElement('div'); card.className='card';
+      card.innerHTML = `<h3>${name}</h3><p>Assigned Students: 0</p><p>Active Crises: 0</p>
+                        <button class="btn" onclick="alert('Manage ${name}')">Manage</button>`;
+      container.appendChild(card);
+      closeModal('addCounselorModal');
+      document.getElementById('totalCounselors').innerText = container.children.length;
+    }
+
+    // Demo add student
+    function addStudent(){
+      const name = document.getElementById('newStudentName').value;
+      const grade = document.getElementById('newStudentGrade').value;
+      const counselor = document.getElementById('newStudentCounselor').value;
+      if(!name || !grade){ alert('Enter all fields'); return; }
+      const tbody = document.getElementById('studentTable');
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${name}</td><td>${grade}</td><td>${counselor}</td><td><span class="badge-red">Red</span></td>
+        <td>
+          <button class="btn" onclick="alert('Assign clicked')">Assign</button>
+          <button class="btn btn-danger" onclick="alert('Archive clicked')">Archive</button>
+        </td>`;
+      tbody.appendChild(row);
+      closeModal('addStudentModal');
+      document.getElementById('totalStudents').innerText = tbody.children.length;
+      document.getElementById('activeCrises').innerText = document.querySelectorAll('#studentTable .badge-red').length;
+    }
+  </script>
+
+</body>
+</html>
+
