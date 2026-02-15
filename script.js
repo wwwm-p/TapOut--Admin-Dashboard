@@ -1,5 +1,5 @@
 // ==========================
-// ADMIN DASHBOARD JS
+// ADMIN DASHBOARD JS (Updated)
 // ==========================
 
 // Storage keys (optional local copy / backup)
@@ -31,7 +31,7 @@ function addAudit(user, role, action){
 }
 
 // --------------------------
-// Fetch Data from SIS API
+// Fetch Data from SIS API + merge student-side counselors
 // --------------------------
 async function fetchAdminData(){
   try {
@@ -40,9 +40,17 @@ async function fetchAdminData(){
       fetch('/api/students'),
       fetch('/api/messages')
     ]);
-    const counselors = await cRes.json();
+    let counselors = await cRes.json();
     const students = await sRes.json();
     const messages = await mRes.json();
+
+    // Add unique counselors from student messages if missing
+    messages.forEach(m => {
+      if(m.counselor && !counselors.find(c => c.username === m.counselor)){
+        counselors.push({ name: m.counselor, email: m.counselor+'@example.com', username: m.counselor });
+      }
+    });
+
     return { counselors, students, messages };
   } catch(err){
     console.error('Failed to fetch admin data', err);
@@ -66,7 +74,8 @@ async function loadData(){
     card.innerHTML = `<h3>${c.name}</h3>
       <p>Assigned Students: ${assigned}</p>
       <p>Active Crises: ${activeCrises}</p>
-      <button class="btn" onclick="manageCounselor('${c.username}')">Manage</button>`;
+      <button class="btn" onclick="manageCounselor('${c.username}')">Manage</button>
+      <button class="btn btn-danger" onclick="removeCounselor('${c.username}')">Remove</button>`;
     container.appendChild(card);
   });
   document.getElementById('totalCounselors').innerText = counselors.length;
@@ -113,7 +122,7 @@ async function loadData(){
 }
 
 // --------------------------
-// Add / Manage Functions
+// Add / Remove / Manage Counselors
 // --------------------------
 async function addCounselor(){
   const name = document.getElementById('newCounselorName').value;
@@ -129,13 +138,24 @@ async function addCounselor(){
     const data = await res.json();
     if(data.success){
       addAudit('Admin','Admin',`Added counselor ${name}`);
-      loadData();
+      await loadData();
+      await populateCounselorDropdown();
       closeModal('addCounselorModal');
     } else alert('Failed to add counselor');
-  } catch(err){
-    console.error(err);
-    alert('Network error');
-  }
+  } catch(err){ console.error(err); alert('Network error'); }
+}
+
+async function removeCounselor(username){
+  if(!confirm(`Are you sure you want to remove ${username}?`)) return;
+  try {
+    const res = await fetch('/api/counselors/'+username, { method:'DELETE' });
+    const data = await res.json();
+    if(data.success){
+      addAudit('Admin','Admin',`Removed counselor ${username}`);
+      await loadData();
+      await populateCounselorDropdown();
+    } else alert('Failed to remove counselor');
+  } catch(err){ console.error(err); alert('Network error'); }
 }
 
 async function addStudent(){
@@ -152,14 +172,14 @@ async function addStudent(){
     const data = await res.json();
     if(data.success){
       addAudit('Admin','Admin',`Added student ${name} to ${counselor}`);
-      loadData();
+      await loadData();
       closeModal('addStudentModal');
     } else alert('Failed to add student');
   } catch(err){ console.error(err); alert('Network error'); }
 }
 
 // --------------------------
-// Assign / Archive / Manage / Crisis actions (stubs or connect to SIS)
+// Assign / Archive / Manage / Crisis actions (stubs)
 // --------------------------
 function manageCounselor(username){ alert('Manage '+username); }
 function assignStudent(name){ alert('Assign '+name); }
@@ -168,7 +188,7 @@ function markReviewed(first,last){ alert('Reviewed '+first+' '+last); }
 function escalate(first,last){ alert('Escalate '+first+' '+last); }
 
 // --------------------------
-// Populate Counselor Dropdown
+// Populate Counselor Dropdown for Students
 // --------------------------
 async function populateCounselorDropdown(){
   try {
@@ -178,7 +198,7 @@ async function populateCounselorDropdown(){
     dropdown.innerHTML='';
     counselors.forEach(c=>{
       const opt = document.createElement('option');
-      opt.value = c.name; opt.textContent = c.name;
+      opt.value = c.username; opt.textContent = c.name;
       dropdown.appendChild(opt);
     });
   } catch(err){ console.error(err); }
