@@ -1,8 +1,8 @@
 // ==========================
-// ADMIN DASHBOARD JS (Updated)
+// ADMIN DASHBOARD JS (Fixed & Integrated with Student-side Counselors)
 // ==========================
 
-// Storage keys (optional local copy / backup)
+// Storage keys for local audit log
 const STORAGE = { audit: 'adminAudit' };
 
 // --------------------------
@@ -31,7 +31,7 @@ function addAudit(user, role, action){
 }
 
 // --------------------------
-// Fetch Data from SIS API + merge student-side counselors
+// Fetch Data from SIS + Merge Student-side Counselors
 // --------------------------
 async function fetchAdminData(){
   try {
@@ -44,10 +44,18 @@ async function fetchAdminData(){
     const students = await sRes.json();
     const messages = await mRes.json();
 
-    // Add unique counselors from student messages if missing
+    // Pull student-side counselors from messages if not in API list
     messages.forEach(m => {
       if(m.counselor && !counselors.find(c => c.username === m.counselor)){
         counselors.push({ name: m.counselor, email: m.counselor+'@example.com', username: m.counselor });
+      }
+    });
+
+    // Pull any localStorage student counselors (optional backup)
+    const studentLocalCounselors = JSON.parse(localStorage.getItem('studentCounselors') || '[]');
+    studentLocalCounselors.forEach(c => {
+      if(!counselors.find(apiC => apiC.username === c.username)){
+        counselors.push(c);
       }
     });
 
@@ -158,6 +166,9 @@ async function removeCounselor(username){
   } catch(err){ console.error(err); alert('Network error'); }
 }
 
+// --------------------------
+// Add Student
+// --------------------------
 async function addStudent(){
   const name = document.getElementById('newStudentName').value;
   const grade = document.getElementById('newStudentGrade').value;
@@ -179,7 +190,7 @@ async function addStudent(){
 }
 
 // --------------------------
-// Assign / Archive / Manage / Crisis actions (stubs)
+// Assign / Archive / Manage / Crisis Actions (Stubs)
 // --------------------------
 function manageCounselor(username){ alert('Manage '+username); }
 function assignStudent(name){ alert('Assign '+name); }
