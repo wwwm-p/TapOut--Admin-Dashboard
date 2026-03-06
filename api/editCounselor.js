@@ -1,7 +1,7 @@
 // pages/api/editcounselor.js
 import { neon } from "@neondatabase/serverless";
 
-// Admin API: manage counselors, assign students, and import SIS data
+// Admin API: manage counselors, assign students, import SIS data, and login
 export default async function handler(req, res) {
   const sql = neon(process.env.NEON_DATABASE_URL);
 
@@ -28,9 +28,32 @@ export default async function handler(req, res) {
     // ------------------------
     if (req.method === "POST") {
       const { action } = req.body;
-
       if (!action) {
         return res.status(400).json({ success: false, error: "Missing action field" });
+      }
+
+      // ------------------------
+      // 0️⃣ Admin login
+      // ------------------------
+      if (action === "admin_login") {
+        const { username, password } = req.body;
+        if (!username || !password) {
+          return res.status(400).json({ success: false, error: "Missing username or password" });
+        }
+
+        const adminResult = await sql`
+          SELECT admin_id, username
+          FROM admin
+          WHERE username = ${username} AND password = ${password}
+        `;
+        if (!adminResult || adminResult.length === 0) {
+          return res.status(401).json({ success: false, error: "Invalid credentials" });
+        }
+
+        return res.status(200).json({
+          success: true,
+          admin: { id: adminResult[0].admin_id, username: adminResult[0].username }
+        });
       }
 
       // ------------------------
@@ -48,11 +71,9 @@ export default async function handler(req, res) {
           WHERE counselor_id = ${id}
           RETURNING counselor_id
         `;
-
         if (!result || result.length === 0) {
           return res.status(404).json({ success: false, error: "Counselor not found" });
         }
-
         return res.status(200).json({ success: true, updated: result[0].counselor_id });
       }
 
@@ -107,7 +128,6 @@ export default async function handler(req, res) {
           VALUES (${student_id}, ${counselor_id})
           ON CONFLICT (student_id, counselor_id) DO NOTHING
         `;
-
         return res.status(200).json({ success: true });
       }
 
