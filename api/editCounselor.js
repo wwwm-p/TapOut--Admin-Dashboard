@@ -11,11 +11,12 @@ export default async function handler(req, res) {
     // ------------------------
     if (req.method === "GET") {
       const counselors = await sql`
-        SELECT counselor_id AS id,
-               username AS name,
-               email,
-               active,
-               metadata
+        SELECT 
+          counselor_id AS id,
+          username AS name,
+          email,
+          active,
+          metadata
         FROM counselors
         ORDER BY username ASC
       `;
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
     }
 
     // ------------------------
-    // POST → different actions
+    // POST → handle actions
     // ------------------------
     if (req.method === "POST") {
       const { action } = req.body;
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
           RETURNING counselor_id
         `;
 
-        if (result.length === 0) {
+        if (!result || result.length === 0) {
           return res.status(404).json({ success: false, error: "Counselor not found" });
         }
 
@@ -74,9 +75,11 @@ export default async function handler(req, res) {
           delete metadata.last_name;
           delete metadata.grade;
 
+          const gradeValue = s.grade || null; // optional grade
+
           await sql`
             INSERT INTO users (student_id, first_name, last_name, grade, metadata)
-            VALUES (${s.student_id}, ${s.first_name}, ${s.last_name}, ${s.grade}, ${metadata})
+            VALUES (${s.student_id}, ${s.first_name}, ${s.last_name}, ${gradeValue}, ${metadata})
             ON CONFLICT (student_id)
             DO UPDATE SET
               first_name = EXCLUDED.first_name,
