@@ -28,19 +28,34 @@
     .btn-danger { background:#e74c3c; }
     .badge-red { background:#e74c3c; color:white; padding:2px 6px; border-radius:8px; font-size:0.8em; }
     .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; z-index:200; }
-    .modal-content { background:#fff; padding:24px; border-radius:8px; width:90%; max-width:500px; position:relative; }
+    .modal-content { background:#fff; padding:24px; border-radius:8px; width:90%; max-width:400px; position:relative; }
     .modal-content h2 { margin-bottom:16px; }
     .modal-close { position:absolute; top:12px; right:12px; cursor:pointer; font-size:1.2em; }
     input, select { width:100%; padding:8px; margin-bottom:12px; border:1px solid #ccc; border-radius:4px; }
+    #loginForm { display:flex; flex-direction:column; }
   </style>
 </head>
 <body>
+
+  <!-- Login Modal -->
+  <div class="modal" id="loginModal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('loginModal')">&times;</span>
+      <h2>Admin Sign In</h2>
+      <form id="loginForm">
+        <input type="text" id="adminUsername" placeholder="Username" required>
+        <input type="password" id="adminPassword" placeholder="Password" required>
+        <button type="submit" class="btn">Sign In</button>
+      </form>
+      <p>Test accounts: <br>Username: admin1 / Password: test123<br>Username: admin2 / Password: test123</p>
+    </div>
+  </div>
 
   <div class="top-bar">
     <div class="school-name">Lincoln High School Admin</div>
     <div class="top-actions">
       <div class="badge" id="crisisCount">0 Crises</div>
-      <div class="profile-dropdown">Admin ▼</div>
+      <div class="profile-dropdown" id="profileDropdown">Admin ▼</div>
     </div>
   </div>
 
@@ -56,12 +71,11 @@
     </div>
 
     <div class="main">
-      <!-- Overview and other sections remain the same -->
+      <div class="section" id="overview"><h2>Welcome to Admin Dashboard</h2></div>
       <div class="section" id="counselors" style="display:none;">
         <h2>Counselors <button class="btn" onclick="openModal('addCounselorModal')">+ Add Counselor</button></h2>
         <div class="card-container" id="counselorCards"></div>
       </div>
-
       <div class="section" id="students" style="display:none;">
         <h2>Students <button class="btn" onclick="openModal('addStudentModal')">+ Add Student</button></h2>
         <table>
@@ -77,14 +91,13 @@
           <tbody id="studentTable"></tbody>
         </table>
       </div>
-      <!-- Crisis, assignments, audit, settings same as before -->
     </div>
   </div>
 
-  <!-- MODALS (unchanged) -->
-
   <script>
-    // Section switching, modals same as before
+    // -----------------------------
+    // Show/hide sections
+    // -----------------------------
     function showSection(sectionId){
       document.querySelectorAll('.main .section').forEach(sec => sec.style.display='none');
       document.getElementById(sectionId).style.display='block';
@@ -95,112 +108,31 @@
     function closeModal(id){ document.getElementById(id).style.display='none'; }
 
     // -----------------------------
-    // Admin data fetching via API
+    // Admin sign-in (test only)
     // -----------------------------
-    const API_BASE = 'https://YOUR-ADMIN-APP.vercel.app/api';
+    const testAdmins = [
+      { username: 'admin1', password: 'test123' },
+      { username: 'admin2', password: 'test123' }
+    ];
 
-    async function loadCounselors(){
-      const res = await fetch(`${API_BASE}/editCounselor`);
-      const counselors = await res.json();
+    document.getElementById('loginForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const user = document.getElementById('adminUsername').value;
+      const pass = document.getElementById('adminPassword').value;
 
-      const container = document.getElementById('counselorCards');
-      container.innerHTML = '';
-      counselors.forEach(c=>{
-        const card = document.createElement('div'); card.className='card';
-        card.innerHTML = `<h3>${c.name}</h3>
-          <p>Email: ${c.email}</p>
-          <p>Status: ${c.active ? 'Active' : 'Hidden'}</p>
-          <button class="btn" onclick="toggleCounselor(${c.id}, ${c.active})">${c.active ? 'Hide' : 'Show'}</button>`;
-        container.appendChild(card);
-      });
+      const valid = testAdmins.find(a => a.username === user && a.password === pass);
+      if(valid){
+        alert('Signed in as ' + user);
+        closeModal('loginModal');
+      } else {
+        alert('Invalid credentials');
+      }
+    });
 
-      // Populate student add dropdown
-      const dropdown = document.getElementById('newStudentCounselor');
-      dropdown.innerHTML='';
-      counselors.filter(c=>c.active).forEach(c=>{
-        const opt = document.createElement('option'); opt.value=c.name; opt.textContent=c.name;
-        dropdown.appendChild(opt);
-      });
-
-      document.getElementById('totalCounselors').innerText = counselors.length;
-    }
-
-    async function toggleCounselor(id, currentStatus){
-      await fetch(`${API_BASE}/editCounselor`, {
-        method:'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ id, active: !currentStatus })
-      });
-      loadCounselors();
-    }
-
-    // -----------------------------
-    // Students - placeholder using localStorage for now
-    // Later we can connect to Neon API for real data
-    // -----------------------------
-    function loadStudents(){
-      const students = JSON.parse(localStorage.getItem('adminStudents')||'[]');
-      const messages = JSON.parse(localStorage.getItem('studentMessages')||'[]');
-      const tbody = document.getElementById('studentTable'); tbody.innerHTML='';
-      students.forEach(s=>{
-        const crisisBadge = messages.find(m=>m.firstName+' '+m.lastName===s.name && m.urgency==='I’m in Crisis') ? '<span class="badge-red">Red</span>' : '';
-        const row = document.createElement('tr');
-        row.innerHTML=`<td>${s.name}</td><td>${s.grade}</td><td>${s.counselor}</td><td>${crisisBadge}</td>
-          <td>
-            <button class="btn" onclick="assignStudent('${s.name}')">Assign</button>
-            <button class="btn btn-danger" onclick="archiveStudent('${s.name}')">Archive</button>
-          </td>`;
-        tbody.appendChild(row);
-      });
-      document.getElementById('totalStudents').innerText = students.length;
-      document.getElementById('activeCrises').innerText = document.querySelectorAll('#studentTable .badge-red').length;
-    }
-
-    // -----------------------------
-    // Add Counselor modal
-    // -----------------------------
-    async function addCounselor(){
-      const name = document.getElementById('newCounselorName').value;
-      const email = document.getElementById('newCounselorEmail').value;
-      if(!name || !email){ alert('Enter all fields'); return; }
-
-      // POST to API
-      await fetch(`${API_BASE}/editCounselor`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id:0, active:true }) // placeholder; in real case, backend inserts new row
-      });
-
-      // For now, update localStorage for demo
-      const username = email.split('@')[0];
-      const counselors = JSON.parse(localStorage.getItem('adminCounselors')||'[]');
-      counselors.push({name,email,username,active:true});
-      localStorage.setItem('adminCounselors',JSON.stringify(counselors));
-      closeModal('addCounselorModal'); loadCounselors();
-    }
-
-    // -----------------------------
-    // Add Student modal
-    // -----------------------------
-    function addStudent(){
-      const name = document.getElementById('newStudentName').value;
-      const grade = document.getElementById('newStudentGrade').value;
-      const counselor = document.getElementById('newStudentCounselor').value;
-      if(!name||!grade||!counselor){ alert('Enter all fields'); return; }
-      const students = JSON.parse(localStorage.getItem('adminStudents')||'[]');
-      students.push({name,grade,counselor});
-      localStorage.setItem('adminStudents',JSON.stringify(students));
-      closeModal('addStudentModal'); loadStudents();
-    }
-
-    // -----------------------------
-    // Init
-    // -----------------------------
+    // Show login modal on page load
     window.onload = ()=>{
-      loadCounselors();
-      loadStudents();
-      setInterval(()=>{ loadCounselors(); loadStudents(); },5000);
-    }
+      openModal('loginModal');
+    };
   </script>
 
 </body>
