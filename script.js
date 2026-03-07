@@ -1,5 +1,5 @@
 // ==========================
-// ADMIN DASHBOARD JS
+// ADMIN DASHBOARD JS (SIS-ready)
 // ==========================
 
 // -------------------
@@ -28,88 +28,74 @@ function addAudit(user, role, action){
 }
 
 // -------------------
-// Fetch Admin Data + Merge Student Counselors
+// Fetch Admin Data → Counselors + Assigned Students
 // -------------------
 async function fetchAdminData(){
   try {
-    const [cRes, sRes, mRes] = await Promise.all([
-      fetch('/api/counselors'),
-      fetch('/api/students'),
-      fetch('/api/messages')
-    ]);
-
-    let counselors = await cRes.json();
-    const students = await sRes.json();
-    const messages = await mRes.json();
-
-    // Merge student-side counselors from localStorage
-    const studentSide = JSON.parse(localStorage.getItem('studentCounselors')||'[]');
-    studentSide.forEach(c=>{
-      if(!counselors.find(apiC=>apiC.username===c.username)) counselors.push(c);
-    });
-
-    return { counselors, students, messages };
-  } catch(err){ console.error(err); return { counselors: [], students: [], messages: [] }; }
+    const res = await fetch('/api/editcounselor?action=counselors_with_students');
+    const json = await res.json();
+    if(!json.success) return { counselors: [] };
+    return { counselors: json.counselors };
+  } catch(err){ console.error(err); return { counselors: [] }; }
 }
 
 // -------------------
 // Load & Render Dashboard
 // -------------------
 async function loadData(){
-  const { counselors, students, messages } = await fetchAdminData();
+  const { counselors } = await fetchAdminData();
 
-  // Counselors cards
+  // Counselors cards with assigned students
   const container = document.getElementById('counselorCards');
   container.innerHTML='';
   counselors.forEach(c=>{
-    const activeCrises = messages.filter(m=>m.counselor===c.username && m.urgency==="I’m in Crisis").length;
-    const assigned = students.filter(s=>s.counselor===c.username).length;
+    const studentsHTML = (c.students || []).map(s=>`
+      <li>${s.first_name} ${s.last_name} (ID: ${s.student_id}, Grade: ${s.grade || '-'})</li>
+    `).join('');
+
     const card = document.createElement('div'); card.className='card';
     card.innerHTML = `<h3>${c.name}</h3>
-      <p>Assigned Students: ${assigned}</p>
-      <p>Active Crises: ${activeCrises}</p>
-      <button class="btn" onclick="manageCounselor('${c.username}')">Manage</button>
-      <button class="btn btn-danger" onclick="removeCounselor('${c.username}')">Remove</button>`;
+      <p>Email: ${c.email}</p>
+      <p>Status: ${c.active ? 'Active' : 'Hidden'}</p>
+      <p>Assigned Students (${(c.students||[]).length}):</p>
+      <ul>${studentsHTML || '<li>No students assigned</li>'}</ul>
+      <button class="btn" onclick="toggleCounselor(${c.id}, ${c.active})">${c.active ? 'Hide' : 'Show'}</button>`;
     container.appendChild(card);
   });
   document.getElementById('totalCounselors').innerText = counselors.length;
 
-  // Students table
-  const tbody = document.getElementById('studentTable');
-  tbody.innerHTML='';
-  students.forEach(s=>{
-    const crisisBadge = messages.find(m=>m.firstName+' '+m.lastName===s.name && m.urgency==="I’m in Crisis") ? '<span class="badge-red">Red</span>' : '';
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${s.name}</td><td>${s.grade}</td><td>${s.counselor}</td><td>${crisisBadge}</td>
-      <td>
-        <button class="btn" onclick="assignStudent('${s.name}')">Assign</button>
-        <button class="btn btn-danger" onclick="archiveStudent('${s.name}')">Archive</button>
-      </td>`;
-    tbody.appendChild(row);
-  });
-  document.getElementById('totalStudents').innerText = students.length;
-  document.getElementById('activeCrises').innerText = messages.filter(m=>m.urgency==="I’m in Crisis").length;
+  // Populate student add dropdown dynamically
+  populateCounselorDropdown(counselors);
+}
 
-  // Crisis monitor
-  const crisisContainer = document.getElementById('crisisCards'); crisisContainer.innerHTML='';
-  messages.filter(m=>m.urgency==="I’m in Crisis").forEach(m=>{
-    const card = document.createElement('div'); card.className='card';
-    card.innerHTML = `<h3>${m.firstName} ${m.lastName} (Grade ${m.grade})</h3>
-      <p>Counselor: ${m.counselor}</p>
-      <p>Status: Unseen</p>
-      <button class="btn" onclick="markReviewed('${m.firstName}','${m.lastName}')">Mark Reviewed</button>
-      <button class="btn btn-danger" onclick="escalate('${m.firstName}','${m.lastName}')">Escalate</button>`;
-    crisisContainer.appendChild(card);
-  });
-  document.getElementById('crisisCount').innerText = messages.filter(m=>m.urgency==="I’m in Crisis").length + ' Crises';
+// -------------------
+// Toggle Counselor Active Status
+// -------------------
+async function toggleCounselor(id, currentStatus){
+  try {
+    const res = await fetch('/api/editcounselor', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'update_counselor', id, active:!currentStatus })
+    });
+    const data = await res.json();
+    if(data.success) addAudit('Admin','Admin',`${currentStatus?'Hidden':'Activated'} counselor ID ${id}`);
+    await loadData();
+  } catch(err){ console.error(err); }
+}
 
-  // Audit log
-  const auditTbody = document.getElementById('auditTable'); auditTbody.innerHTML='';
-  const logs = JSON.parse(localStorage.getItem('adminAudit')||'[]');
-  logs.forEach(a=>{
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${a.time}</td><td>${a.user}</td><td>${a.role}</td><td>${a.action}</td>`;
-    auditTbody.appendChild(row);
+// -------------------
+// Populate dropdown for adding students
+// -------------------
+function populateCounselorDropdown(counselors){
+  const dropdown = document.getElementById('newStudentCounselor'); 
+  if(!dropdown) return;
+  dropdown.innerHTML='';
+  counselors.filter(c=>c.active).forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id; // store counselor_id for assignments
+    opt.textContent = c.name;
+    dropdown.appendChild(opt);
   });
 }
 
@@ -121,50 +107,26 @@ async function addCounselor(){
   const email = document.getElementById('newCounselorEmail').value;
   if(!name||!email){ alert('Enter all fields'); return; }
   const username = email.split('@')[0];
+
   try {
-    const res = await fetch('/api/counselors',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,email,username}) });
+    const res = await fetch('/api/counselors',{ 
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,email,username})
+    });
     const data = await res.json();
     if(data.success){
       addAudit('Admin','Admin',`Added counselor ${name}`);
-      await loadData(); await populateCounselorDropdown();
+      await loadData();
       closeModal('addCounselorModal');
     } else alert('Failed to add counselor');
   } catch(err){ console.error(err); alert('Network error'); }
-}
-
-async function removeCounselor(username){
-  if(!confirm(`Remove ${username}?`)) return;
-  try {
-    const res = await fetch('/api/counselors/'+username,{ method:'DELETE' });
-    const data = await res.json();
-    if(data.success){
-      addAudit('Admin','Admin',`Removed counselor ${username}`);
-      await loadData(); await populateCounselorDropdown();
-    } else alert('Failed to remove counselor');
-  } catch(err){ console.error(err); alert('Network error'); }
-}
-
-// -------------------
-// Populate dropdown for adding students
-// -------------------
-async function populateCounselorDropdown(){
-  try {
-    const res = await fetch('/api/counselors');
-    const counselors = await res.json();
-    const dropdown = document.getElementById('newStudentCounselor'); dropdown.innerHTML='';
-    counselors.forEach(c=>{
-      const opt = document.createElement('option'); opt.value=c.username; opt.textContent=c.name; dropdown.appendChild(opt);
-    });
-    // Update student-side copy as well
-    localStorage.setItem('studentCounselors', JSON.stringify(counselors));
-  } catch(err){ console.error(err); }
 }
 
 // -------------------
 // INIT
 // -------------------
 window.onload = async ()=>{
-  await populateCounselorDropdown();
   await loadData();
   setInterval(loadData,5000);
 };
