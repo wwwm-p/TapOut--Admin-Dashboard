@@ -15,8 +15,14 @@ function showSection(sectionId){
 // -------------------
 // Modals
 // -------------------
-function openModal(id){ document.getElementById(id).style.display='flex'; }
-function closeModal(id){ document.getElementById(id).style.display='none'; }
+function openModal(id){ 
+  const modal = document.getElementById(id);
+  if(modal) modal.style.display='flex'; 
+}
+function closeModal(id){ 
+  const modal = document.getElementById(id);
+  if(modal) modal.style.display='none'; 
+}
 
 // -------------------
 // Audit Log
@@ -35,7 +41,7 @@ async function fetchAdminData(){
     const res = await fetch('/api/editcounselor?action=counselors_with_students');
     const json = await res.json();
     if(!json.success) return { counselors: [] };
-    return { counselors: json.counselors };
+    return { counselors: json.counselors || [] };
   } catch(err){ console.error(err); return { counselors: [] }; }
 }
 
@@ -45,27 +51,37 @@ async function fetchAdminData(){
 async function loadData(){
   const { counselors } = await fetchAdminData();
 
-  // Counselors cards with assigned students
+  // Render counselor cards
   const container = document.getElementById('counselorCards');
-  container.innerHTML='';
-  counselors.forEach(c=>{
-    const studentsHTML = (c.students || []).map(s=>`
-      <li>${s.first_name} ${s.last_name} (ID: ${s.student_id}, Grade: ${s.grade || '-'})</li>
-    `).join('');
+  if(container){
+    container.innerHTML='';
+    counselors.forEach(c=>{
+      const studentsHTML = (c.students || []).map(s=>`
+        <li>${s.first_name} ${s.last_name} (ID: ${s.student_id}, Grade: ${s.grade || '-'})</li>
+      `).join('');
 
-    const card = document.createElement('div'); card.className='card';
-    card.innerHTML = `<h3>${c.name}</h3>
-      <p>Email: ${c.email}</p>
-      <p>Status: ${c.active ? 'Active' : 'Hidden'}</p>
-      <p>Assigned Students (${(c.students||[]).length}):</p>
-      <ul>${studentsHTML || '<li>No students assigned</li>'}</ul>
-      <button class="btn" onclick="toggleCounselor(${c.id}, ${c.active})">${c.active ? 'Hide' : 'Show'}</button>`;
-    container.appendChild(card);
-  });
-  document.getElementById('totalCounselors').innerText = counselors.length;
+      const card = document.createElement('div');
+      card.className='card';
+      card.innerHTML = `
+        <h3>${c.name}</h3>
+        <p>Email: ${c.email}</p>
+        <p>Status: ${c.active ? 'Active' : 'Hidden'}</p>
+        <p>Assigned Students (${(c.students||[]).length}):</p>
+        <ul>${studentsHTML || '<li>No students assigned</li>'}</ul>
+        <button class="btn" onclick="toggleCounselor(${c.id}, ${c.active})">
+          ${c.active ? 'Hide' : 'Show'}
+        </button>
+      `;
+      container.appendChild(card);
+    });
+  }
 
-  // Populate student add dropdown dynamically
+  // Populate dropdown for assigning students
   populateCounselorDropdown(counselors);
+
+  // Update counselor count badge if exists
+  const countBadge = document.getElementById('totalCounselors');
+  if(countBadge) countBadge.innerText = counselors.length;
 }
 
 // -------------------
@@ -79,8 +95,10 @@ async function toggleCounselor(id, currentStatus){
       body: JSON.stringify({ action:'update_counselor', id, active:!currentStatus })
     });
     const data = await res.json();
-    if(data.success) addAudit('Admin','Admin',`${currentStatus?'Hidden':'Activated'} counselor ID ${id}`);
-    await loadData();
+    if(data.success){
+      addAudit('Admin','Admin',`${currentStatus?'Hidden':'Activated'} counselor ID ${id}`);
+      await loadData();
+    }
   } catch(err){ console.error(err); }
 }
 
@@ -93,19 +111,19 @@ function populateCounselorDropdown(counselors){
   dropdown.innerHTML='';
   counselors.filter(c=>c.active).forEach(c=>{
     const opt = document.createElement('option');
-    opt.value = c.id; // store counselor_id for assignments
-    opt.textContent = c.name;
+    opt.value = c.id;
+    opt.textContent = `${c.name} (${c.email})`; // show email for clarity
     dropdown.appendChild(opt);
   });
 }
 
 // -------------------
-// Add / Remove / Manage Counselors
+// Add / Remove Counselors
 // -------------------
 async function addCounselor(){
-  const name = document.getElementById('newCounselorName').value;
-  const email = document.getElementById('newCounselorEmail').value;
-  if(!name||!email){ alert('Enter all fields'); return; }
+  const name = document.getElementById('newCounselorName')?.value.trim();
+  const email = document.getElementById('newCounselorEmail')?.value.trim();
+  if(!name||!email){ alert('Enter both username and email'); return; }
   const username = email.split('@')[0];
 
   try {
@@ -119,6 +137,8 @@ async function addCounselor(){
       addAudit('Admin','Admin',`Added counselor ${name}`);
       await loadData();
       closeModal('addCounselorModal');
+      document.getElementById('newCounselorName').value='';
+      document.getElementById('newCounselorEmail').value='';
     } else alert('Failed to add counselor');
   } catch(err){ console.error(err); alert('Network error'); }
 }
@@ -128,5 +148,5 @@ async function addCounselor(){
 // -------------------
 window.onload = async ()=>{
   await loadData();
-  setInterval(loadData,5000);
+  setInterval(loadData,5000); // refresh dashboard every 5s
 };
