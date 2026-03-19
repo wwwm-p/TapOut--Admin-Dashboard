@@ -6,7 +6,7 @@
   <title>School Admin Dashboard</title>
 
   <!-- PWA: Manifest + theme -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="admin-manifest.json">
   <meta name="theme-color" content="#0070c9">
 
   <!-- PWA: Mobile web app compatibility -->
@@ -14,11 +14,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="School Admin Dashboard">
-
-  <!-- PWA: Apple touch icons -->
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
-  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
 
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif; }
@@ -564,7 +559,7 @@
 
     function populateCounselorSelect(){
       const sel = document.getElementById('studentCounselor');
-      sel.innerHTML = `<option value="">Unassigned</option>` + counselors.map(c=>`<option value="${c.id}">${c.email}</option>`).join('');
+      sel.innerHTML = `<option value=\"\">Unassigned</option>` + counselors.map(c=>`<option value=\"${c.id}\">${c.email}</option>`).join('');
     }
 
     // ================== PROFILES ==================
