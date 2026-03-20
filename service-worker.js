@@ -3,10 +3,10 @@ const CACHE_NAME = "admin-dashboard-v3";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
-  "/manifest.json",
+  "/admin-manifest.json",
   "/service-worker.js",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png"
+  "/icons/icon-192-admin.png",
+  "/icons/icon-512-admin.png"
 ];
 
 // INSTALL
