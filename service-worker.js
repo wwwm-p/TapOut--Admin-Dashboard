@@ -7,9 +7,9 @@ const STATIC_ASSETS = [
   "/service-worker.js",
   "/script.js",
 
-  // icons (must match your actual files)
-  "/web-app-manifest-192x192.png",
-  "/web-app-manifest-512x512.png"
+  // icons (must match your manifest)
+  "/icons/icon-192.png",
+  "/icons/icon-512.png"
 ];
 
 // INSTALL
