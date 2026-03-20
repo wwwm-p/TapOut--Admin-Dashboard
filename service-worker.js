@@ -1,31 +1,26 @@
-const CACHE_NAME = "admin-dashboard-v2";
+const CACHE_NAME = "admin-dashboard-v3";
 
 const STATIC_ASSETS = [
   "/",
-  "/index-admin.html",
+  "/index.html",
   "/manifest.json",
   "/service-worker.js",
-  "/script.js",
-
-  // icons (must match your manifest)
   "/icons/icon-192.png",
   "/icons/icon-512.png"
 ];
 
 // INSTALL
 self.addEventListener("install", (event) => {
-  console.log("SW: Installing");
+  console.log("SW: Installed");
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
 
 // ACTIVATE
 self.addEventListener("activate", (event) => {
-  console.log("SW: Activating");
+  console.log("SW: Activated");
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -40,7 +35,7 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// FETCH
+// FETCH (offline support)
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => {
