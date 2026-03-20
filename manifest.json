@@ -2,7 +2,7 @@
   "name": "School Admin Dashboard",
   "short_name": "AdminDash",
   "description": "Admin dashboard for managing counselors, students, and schools.",
-  "start_url": "/index.html",
+  "start_url": "/index-admin.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
