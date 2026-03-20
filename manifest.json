@@ -2,12 +2,13 @@
   "name": "School Admin Dashboard",
   "short_name": "AdminDash",
   "description": "Admin dashboard for managing counselors, students, and schools.",
-  "start_url": "/index-admin.html",
+  "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#0070c9",
   "background_color": "#ffffff",
+
   "icons": [
     {
       "src": "/icons/icon-192.png",
