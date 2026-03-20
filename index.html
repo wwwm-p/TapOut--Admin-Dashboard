@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>School Admin Dashboard</title>
 
-<!-- PWA -->
+<!-- PWA Manifest -->
 <link rel="manifest" href="/admin-manifest.json">
 <meta name="theme-color" content="#0070c9">
 <link rel="apple-touch-icon" href="/icons/icon-192-admin.png">
@@ -19,7 +19,6 @@
   body { background:#f4f5f7; color:#333; transition:0.2s; }
   body.dark { background:#101826; color:#e5e7eb; }
 
-  /* Top bar */
   .top-bar { display:flex; justify-content:space-between; align-items:center; background:#fff; padding:12px 24px; border-bottom:1px solid #ddd; position:sticky; top:0; z-index:100; }
   body.dark .top-bar { background:#0f172a; border-color:#1f2937; }
   .top-bar .school-name { font-weight:bold; font-size:1.2em; }
@@ -28,36 +27,27 @@
   .dark-toggle { padding:6px 10px; border-radius:6px; border:1px solid #ddd; background:#fff; cursor:pointer; }
   body.dark .dark-toggle { background:#111827; color:#e5e7eb; border-color:#1f2937; }
 
-  /* Layout */
   .container { display:flex; min-height:100vh; }
   .sidebar { width:240px; background:#2c3e50; color:white; display:flex; flex-direction:column; }
   .sidebar a { padding:16px 20px; text-decoration:none; color:white; display:flex; align-items:center; gap:8px; }
   .sidebar a:hover, .sidebar a.active { background:#34495e; cursor:pointer; }
   .main { flex:1; padding:24px; }
 
-  /* Sections */
   .section { display:none; background:#fff; padding:16px; border-radius:8px; margin-bottom:24px; }
   .section.active { display:block; }
   body.dark .section { background:#0f172a; border:1px solid #1f2937; }
 
-  /* Tables */
   table { width:100%; border-collapse:collapse; }
-  th, td { padding:12px; border-bottom:1px solid #ddd; text-align:left; }
+  th, td { padding:12px; border-bottom:1px solid #ddd; }
   body.dark th, body.dark td { border-color:#1f2937; }
   th { background:#ecf0f1; }
   body.dark th { background:#111827; }
+
   .btn { padding:6px 12px; border:none; border-radius:4px; cursor:pointer; background:#3498db; color:white; margin-right:4px; }
 
-  /* Modals */
   .modal { display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:200; }
   .modal-content { background:#fff; padding:24px; border-radius:8px; width:90%; max-width:520px; position:relative; }
   body.dark .modal-content { background:#0f172a; color:#e5e7eb; border:1px solid #1f2937; }
-
-  /* Install Button */
-  #installBtn { 
-    display:none; position:fixed; bottom:20px; right:20px; padding:10px 16px; 
-    background:#0070c9; color:white; border:none; border-radius:6px; cursor:pointer; z-index:999; 
-  }
 </style>
 </head>
 <body>
@@ -100,64 +90,26 @@
   </div>
 
   <div class="main">
-    <div class="section active" id="overview">
-      <h2>Overview</h2>
-      <p>Dashboard summary and quick stats go here.</p>
-    </div>
-
-    <div class="section" id="counselors">
-      <h2>Counselors</h2>
-      <table>
-        <thead><tr><th>Name</th><th>Email</th></tr></thead>
-        <tbody id="counselorTable"></tbody>
-      </table>
-    </div>
-
-    <div class="section" id="students">
-      <h2>Students</h2>
-      <table>
-        <thead><tr><th>Name</th><th>Grade</th></tr></thead>
-        <tbody id="studentTable"></tbody>
-      </table>
-    </div>
-
-    <div class="section" id="schools">
-      <h2>Schools</h2>
-      <table>
-        <thead><tr><th>Name</th><th>District</th></tr></thead>
-        <tbody id="schoolTable"></tbody>
-      </table>
-    </div>
-
-    <div class="section" id="notifications">
-      <h2>Notifications</h2>
-      <p>No notifications yet.</p>
-    </div>
-
-    <div class="section" id="calendar">
-      <h2>Calendar</h2>
-      <p>Calendar widget goes here.</p>
-    </div>
+    <div class="section active" id="overview"><h2>Overview</h2><p>Dashboard summary and quick stats go here.</p></div>
+    <div class="section" id="counselors"><h2>Counselors</h2><table><thead><tr><th>Name</th><th>Email</th></tr></thead><tbody id="counselorTable"></tbody></table></div>
+    <div class="section" id="students"><h2>Students</h2><table><thead><tr><th>Name</th><th>Grade</th></tr></thead><tbody id="studentTable"></tbody></table></div>
+    <div class="section" id="schools"><h2>Schools</h2><table><thead><tr><th>Name</th><th>District</th></tr></thead><tbody id="schoolTable"></tbody></table></div>
+    <div class="section" id="notifications"><h2>Notifications</h2><p>No notifications yet.</p></div>
+    <div class="section" id="calendar"><h2>Calendar</h2><p>Calendar widget goes here.</p></div>
   </div>
 </div>
-
-<!-- Install Button -->
-<button id="installBtn">Install App</button>
 
 <script>
 /* NAVIGATION */
 function showSection(id, evt){
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-
   document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
   evt.currentTarget.classList.add('active');
 }
 
 /* DARK MODE */
-document.getElementById("darkToggle").onclick = () => {
-  document.body.classList.toggle("dark");
-};
+document.getElementById("darkToggle").onclick = () => { document.body.classList.toggle("dark"); };
 
 /* LOGIN */
 document.getElementById("loginForm").addEventListener("submit", e=>{
@@ -168,30 +120,30 @@ document.getElementById("loginForm").addEventListener("submit", e=>{
 /* SERVICE WORKER */
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("/service-worker.js")
-      .then(()=>console.log("SW registered"))
-      .catch(err=>console.warn("SW failed:", err));
+    navigator.serviceWorker.register("/service-worker.js");
   });
 }
 
-/* PWA INSTALL PROMPT */
+/* INSTALL PROMPT */
 let deferredPrompt;
-const installBtn = document.getElementById("installBtn");
-
-window.addEventListener("beforeinstallprompt", (e) => {
+window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  installBtn.style.display = "block";
-});
+  console.log('PWA install prompt saved.');
 
-installBtn.addEventListener("click", async () => {
-  installBtn.style.display = "none";
-  if (deferredPrompt) {
+  // Show a custom button to trigger install
+  const installBtn = document.createElement('button');
+  installBtn.innerText = "Install App";
+  installBtn.className = "btn";
+  document.querySelector('.top-bar .top-actions').prepend(installBtn);
+
+  installBtn.addEventListener('click', async () => {
+    installBtn.style.display = "none";
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    console.log("PWA install result:", outcome);
+    console.log('User response to install:', outcome);
     deferredPrompt = null;
-  }
+  });
 });
 </script>
 
