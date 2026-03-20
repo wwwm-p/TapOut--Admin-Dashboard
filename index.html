@@ -5,609 +5,136 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>School Admin Dashboard</title>
 
-  <!-- PWA: Manifest + theme -->
-  <link rel="manifest" href="admin-manifest.json">
+  <!-- ✅ PWA: Correct manifest -->
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0070c9">
 
-  <!-- PWA: Mobile web app compatibility -->
+  <!-- ✅ Mobile support -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="School Admin Dashboard">
+  <meta name="apple-mobile-web-app-title" content="AdminDash">
+
+  <!-- (Optional but helps install recognition) -->
+  <meta name="application-name" content="AdminDash">
 
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif; }
     body { background: #f4f5f7; color: #333; transition: background 0.2s, color 0.2s; }
     body.dark { background:#101826; color:#e5e7eb; }
 
-    /* Top bar */
     .top-bar { display:flex; justify-content: space-between; align-items:center; background:#fff; padding: 12px 24px; border-bottom:1px solid #ddd; position: sticky; top:0; z-index:100; }
     body.dark .top-bar { background:#0f172a; border-color:#1f2937; }
-    .top-bar .school-name { font-weight:bold; font-size:1.2em; }
-    .top-bar .top-actions { display:flex; gap:16px; align-items:center; }
-    .top-bar .badge { background:red; color:white; border-radius:12px; padding:4px 8px; font-size:0.8em; }
-    .dark-toggle { padding:6px 10px; border-radius:6px; border:1px solid #ddd; background:#fff; cursor:pointer; }
-    body.dark .dark-toggle { background:#111827; color:#e5e7eb; border-color:#1f2937; }
 
-    /* Layout */
     .container { display:flex; min-height:100vh; }
     .sidebar { width:240px; background:#2c3e50; color:white; display:flex; flex-direction:column; }
     .sidebar a { padding:16px 20px; text-decoration:none; color:white; display:flex; align-items:center; gap:8px; }
     .sidebar a:hover, .sidebar a.active { background:#34495e; cursor:pointer; }
+
     .main { flex:1; padding:24px; }
 
-    /* Sections */
     .section { margin-bottom:24px; background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
     body.dark .section { background:#0f172a; border:1px solid #1f2937; }
 
-    /* Cards */
     .card-container { display:flex; flex-wrap:wrap; gap:16px; }
-    .card { background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); flex:1 1 200px; min-width:200px; display:flex; flex-direction:column; justify-content:space-between; }
-    body.dark .card { background:#111827; border:1px solid #1f2937; }
-    .card h3 { margin-bottom:4px; font-size:1em; }
-    .card p { font-size:0.9em; color:#555; }
-    body.dark .card p { color:#9ca3af; }
-    .card button { margin-top:8px; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; background:#3498db; color:white; }
 
-    /* Tables */
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:12px; border-bottom:1px solid #ddd; text-align:left; }
-    body.dark th, body.dark td { border-color:#1f2937; }
-    th { background:#ecf0f1; }
-    body.dark th { background:#111827; }
-    .btn { padding:6px 12px; border:none; border-radius:4px; cursor:pointer; background:#3498db; color:white; margin-right:4px; }
-    .btn-secondary { background:#64748b; }
-    .btn-danger { background:#e74c3c; }
+    .btn { padding:6px 12px; border:none; border-radius:4px; cursor:pointer; background:#3498db; color:white; }
 
-    /* Modals */
     .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:200; }
-    .modal-content { background:#fff; padding:24px; border-radius:8px; width:90%; max-width:520px; position:relative; }
-    body.dark .modal-content { background:#0f172a; color:#e5e7eb; border:1px solid #1f2937; }
-    .modal-content h2 { margin-bottom:16px; }
-    .modal-close { position:absolute; top:12px; right:12px; cursor:pointer; font-size:1.2em; }
-    input, select, textarea { width:100%; padding:8px; margin-bottom:12px; border:1px solid #ccc; border-radius:4px; }
-    body.dark input, body.dark select, body.dark textarea { background:#111827; color:#e5e7eb; border-color:#1f2937; }
+    .modal-content { background:#fff; padding:24px; border-radius:8px; width:90%; max-width:520px; }
 
-    /* Tabs */
-    .tabs { display:flex; gap:8px; margin-bottom:10px; }
-    .tabs button { padding:6px 12px; border-radius:999px; border:1px solid #ddd; background:#fff; cursor:pointer; }
-    body.dark .tabs button { background:#111827; color:#e5e7eb; border-color:#1f2937; }
-    .tabs button.active { border-color:#0070c9; box-shadow:0 0 0 2px rgba(0,112,201,0.2); }
-
-    /* Urgency */
-    .urgency-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
-    .urgency-card { padding:12px; border-radius:8px; border-left:6px solid; background:#fff; }
-    body.dark .urgency-card { background:#111827; border-color:#1f2937; }
-    .urgency-card.low { border-color:#10b981; }
-    .urgency-card.moderate { border-color:#facc15; }
-    .urgency-card.elevated { border-color:#f59e0b; }
-    .urgency-card.crisis { border-color:#ef4444; }
-
-    /* Calendar */
-    .calendar { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; margin-top:10px; }
-    .calendar-day { background:#f1f1f1; border-radius:6px; padding:6px; font-size:12px; min-height:60px; }
-    body.dark .calendar-day { background:#111827; }
-    .calendar-weekday { font-weight:bold; text-align:center; font-size:12px; color:#444; }
-    body.dark .calendar-weekday { color:#9ca3af; }
-
-    /* Login */
     #loginModal { display:flex; }
 
-    /* Responsive */
     @media (max-width: 900px){
       .container { flex-direction:column; }
       .sidebar { width:100%; flex-direction:row; overflow:auto; }
       .sidebar a { flex:1; justify-content:center; }
-      .main { padding:16px; }
     }
   </style>
 </head>
+
 <body>
 
-  <!-- Login Modal -->
-  <div class="modal" id="loginModal">
-    <div class="modal-content">
-      <h2>Admin Sign In</h2>
-      <form id="loginForm">
-        <input type="text" id="adminUsername" placeholder="Username" required>
-        <input type="password" id="adminPassword" placeholder="Password" required>
-        <button type="submit" class="btn">Sign In</button>
-      </form>
-      <p>Test accounts: <br>
-         Username: admin1 / Password: test123<br>
-         Username: admin2 / Password: test123
-      </p>
-    </div>
+<!-- LOGIN -->
+<div class="modal" id="loginModal">
+  <div class="modal-content">
+    <h2>Admin Sign In</h2>
+    <form id="loginForm">
+      <input type="text" id="adminUsername" placeholder="Username" required>
+      <input type="password" id="adminPassword" placeholder="Password" required>
+      <button type="submit" class="btn">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div><strong>Lincoln High School Admin</strong></div>
+  <button id="installBtn" class="btn" style="display:none;">Install App</button>
+</div>
+
+<div class="container">
+  <div class="sidebar">
+    <a class="active" onclick="showSection('overview')">🏠 Home</a>
+    <a onclick="showSection('students')">👨‍🎓 Students</a>
   </div>
 
-  <!-- Top bar -->
-  <div class="top-bar">
-    <div class="school-name">Lincoln High School Admin</div>
-    <div class="top-actions">
-      <div class="badge" id="crisisCount">0 Crises</div>
-      <button class="dark-toggle" id="darkToggle">Dark Mode</button>
-      <div class="profile-dropdown" id="profileDropdown">Admin ▼</div>
+  <div class="main">
+    <div class="section" id="overview">
+      <h2>Overview</h2>
+      <div id="overviewCards"></div>
+    </div>
+
+    <div class="section" id="students" style="display:none;">
+      <h2>Students</h2>
+      <div id="studentTable"></div>
     </div>
   </div>
+</div>
 
-  <div class="container">
-    <div class="sidebar">
-      <a class="active" onclick="showSection('overview')">🏠 Home</a>
-      <a onclick="showSection('counselors')">👩‍🏫 Counselors</a>
-      <a onclick="showSection('students')">👨‍🎓 Students</a>
-      <a onclick="showSection('schools')">🏫 Schools</a>
-      <a onclick="showSection('notifications')">🔔 Notifications</a>
-      <a onclick="showSection('calendar')">📅 Calendar</a>
-    </div>
+<script>
+/* ================= LOGIN ================= */
+document.getElementById('loginForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  document.getElementById('loginModal').style.display='none';
+});
 
-    <div class="main">
-      <!-- Home -->
-      <div class="section" id="overview">
-        <h2>Overview</h2>
-        <div class="card-container" id="overviewCards"></div>
-        <h3 style="margin-top:16px;">Urgency Summary</h3>
-        <div class="urgency-grid" id="urgencyGrid"></div>
-      </div>
+/* ================= NAV ================= */
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display='block';
+}
 
-      <!-- Counselors -->
-      <div class="section" id="counselors" style="display:none;">
-        <h2>Counselors <button class="btn" onclick="openModal('counselorModal')">+ Add Counselor</button></h2>
-        <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
-          <tbody id="counselorTable"></tbody>
-        </table>
-      </div>
+/* ================= DARK MODE ================= */
+document.body.addEventListener("dblclick", ()=>{
+  document.body.classList.toggle("dark");
+});
 
-      <!-- Students -->
-      <div class="section" id="students" style="display:none;">
-        <h2>Students <button class="btn" onclick="openModal('studentModal')">+ Add Student</button></h2>
-        <table>
-          <thead><tr><th>Name</th><th>Grade</th><th>Counselor</th><th>Actions</th></tr></thead>
-          <tbody id="studentTable"></tbody>
-        </table>
-      </div>
+/* ================= SERVICE WORKER ================= */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js");
+  });
+}
 
-      <!-- Schools -->
-      <div class="section" id="schools" style="display:none;">
-        <h2>Schools <button class="btn" onclick="openModal('schoolModal')">+ Add School</button></h2>
-        <table>
-          <thead><tr><th>Name</th><th>District</th><th>Actions</th></tr></thead>
-          <tbody id="schoolTable"></tbody>
-        </table>
-      </div>
+/* ================= INSTALL BUTTON ================= */
+let deferredPrompt;
+const installBtn = document.getElementById("installBtn");
 
-      <!-- Notifications -->
-      <div class="section" id="notifications" style="display:none;">
-        <h2>Notifications</h2>
-        <div id="notificationList"></div>
-      </div>
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = "block";
+});
 
-      <!-- Calendar -->
-      <div class="section" id="calendar" style="display:none;">
-        <h2>Appointments Calendar</h2>
-        <div class="calendar" id="calendarGrid"></div>
-      </div>
-    </div>
-  </div>
+installBtn.addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt = null;
+    installBtn.style.display = "none";
+  }
+});
+</script>
 
-  <!-- Counselor Profile Modal -->
-  <div class="modal" id="counselorProfileModal">
-    <div class="modal-content">
-      <span class="modal-close" onclick="closeModal('counselorProfileModal')">&times;</span>
-      <h2 id="counselorProfileTitle">Counselor</h2>
-      <div class="tabs">
-        <button class="active" data-tab="counselorDetails">Details</button>
-        <button data-tab="counselorNotes">Notes</button>
-        <button data-tab="counselorMessages">Messages</button>
-      </div>
-      <div id="counselorDetails"></div>
-      <div id="counselorNotes" style="display:none;"></div>
-      <div id="counselorMessages" style="display:none;"></div>
-    </div>
-  </div>
-
-  <!-- Student Profile Modal -->
-  <div class="modal" id="studentProfileModal">
-    <div class="modal-content">
-      <span class="modal-close" onclick="closeModal('studentProfileModal')">&times;</span>
-      <h2 id="studentProfileTitle">Student</h2>
-      <div class="tabs">
-        <button class="active" data-tab="studentDetails">Details</button>
-        <button data-tab="studentNotes">Notes</button>
-        <button data-tab="studentMessages">Messages</button>
-      </div>
-      <div id="studentDetails"></div>
-      <div id="studentNotes" style="display:none;"></div>
-      <div id="studentMessages" style="display:none;"></div>
-    </div>
-  </div>
-
-  <!-- Add/Edit Modals -->
-  <div class="modal" id="counselorModal">
-    <div class="modal-content">
-      <span class="modal-close" onclick="closeModal('counselorModal')">&times;</span>
-      <h2 id="counselorModalTitle">Add Counselor</h2>
-      <input type="text" id="counselorName" placeholder="Name">
-      <input type="email" id="counselorEmail" placeholder="Email">
-      <button class="btn" onclick="saveCounselor()">Save</button>
-    </div>
-  </div>
-
-  <div class="modal" id="studentModal">
-    <div class="modal-content">
-      <span class="modal-close" onclick="closeModal('studentModal')">&times;</span>
-      <h2 id="studentModalTitle">Add Student</h2>
-      <input type="text" id="studentName" placeholder="Name">
-      <input type="text" id="studentGrade" placeholder="Grade">
-      <select id="studentCounselor"></select>
-      <button class="btn" onclick="saveStudent()">Save</button>
-    </div>
-  </div>
-
-  <div class="modal" id="schoolModal">
-    <div class="modal-content">
-      <span class="modal-close" onclick="closeModal('schoolModal')">&times;</span>
-      <h2 id="schoolModalTitle">Add School</h2>
-      <input type="text" id="schoolNameInput" placeholder="School Name">
-      <input type="text" id="schoolDistrictInput" placeholder="District">
-      <button class="btn" onclick="saveSchool()">Save</button>
-    </div>
-  </div>
-
-  <script>
-    // ================== MOCK DATA ==================
-    const mockAdmins = [
-      { username: 'admin1', password: 'test123' },
-      { username: 'admin2', password: 'test123' }
-    ];
-
-    let counselors = [
-      { id:'c1', name:'Alice Johnson', email:'alice@school.edu' },
-      { id:'c2', name:'Bob Smith', email:'bob@school.edu' }
-    ];
-
-    let students = [
-      { id:'s1', name:'Maya Foster', grade:'10', counselorId:'c1' },
-      { id:'s2', name:'Noah Garcia', grade:'9', counselorId:'c1' },
-      { id:'s3', name:'Olivia Harris', grade:'11', counselorId:'c2' }
-    ];
-
-    let schools = [
-      { id:'sc1', name:'Lincoln High School', district:'North District' },
-      { id:'sc2', name:'Riverside High School', district:'West District' }
-    ];
-
-    let notes = {
-      c1:[{text:"Weekly check-in complete.", ts:"2026-02-15"}],
-      s1:[{text:"Discussed attendance.", ts:"2026-02-14"}]
-    };
-
-    let messages = [
-      { id:'m1', studentId:'s1', counselorId:'c1', urgency:'crisis', text:'I’m in Crisis', read:false, ts:'2026-02-15 10:12' },
-      { id:'m2', studentId:'s2', counselorId:'c1', urgency:'elevated', text:'Feeling a Little Off', read:false, ts:'2026-02-15 11:00' },
-      { id:'m3', studentId:'s3', counselorId:'c2', urgency:'low', text:'Just checking in', read:true, ts:'2026-02-15 12:20' }
-    ];
-
-    let appointments = [
-      { id:'a1', studentId:'s1', date:'2026-02-18', time:'10:00' },
-      { id:'a2', studentId:'s3', date:'2026-02-20', time:'09:30' }
-    ];
-
-    // ================== UI HELPERS ==================
-    function showSection(id){
-      document.querySelectorAll('.main .section').forEach(sec => sec.style.display='none');
-      document.getElementById(id).style.display='block';
-      document.querySelectorAll('.sidebar a').forEach(link => link.classList.remove('active'));
-      document.querySelector(`.sidebar a[onclick="showSection('${id}')"]`)?.classList.add('active');
-    }
-
-    function openModal(id){ document.getElementById(id).style.display='flex'; }
-    function closeModal(id){ if(id !== 'loginModal') document.getElementById(id).style.display='none'; }
-
-    // ================== LOGIN ==================
-    document.getElementById('loginForm').addEventListener('submit', function(e){
-      e.preventDefault();
-      const user = document.getElementById('adminUsername').value;
-      const pass = document.getElementById('adminPassword').value;
-      const valid = mockAdmins.find(a => a.username===user && a.password===pass);
-      if(valid){
-        document.getElementById('loginModal').style.display='none';
-        loadAll();
-      } else { alert('Invalid credentials'); }
-    });
-    window.onload = ()=>{ document.getElementById('loginModal').style.display='flex'; };
-
-    // ================== RENDER ==================
-    function loadAll(){
-      renderOverview();
-      renderCounselors();
-      renderStudents();
-      renderSchools();
-      renderNotifications();
-      renderCalendar();
-      updateCrisisBadge();
-      populateCounselorSelect();
-    }
-
-    function renderOverview(){
-      const overview = document.getElementById('overviewCards');
-      overview.innerHTML = `
-        <div class="card"><h3>${counselors.length}</h3><p>Counselors</p></div>
-        <div class="card"><h3>${students.length}</h3><p>Students</p></div>
-        <div class="card"><h3>${messages.filter(m=>!m.read).length}</h3><p>Unread Notifications</p></div>
-      `;
-      renderUrgency();
-    }
-
-    function renderUrgency(){
-      const grid = document.getElementById('urgencyGrid');
-      const counts = {
-        low: messages.filter(m=>m.urgency==='low').length,
-        moderate: messages.filter(m=>m.urgency==='moderate').length,
-        elevated: messages.filter(m=>m.urgency==='elevated').length,
-        crisis: messages.filter(m=>m.urgency==='crisis').length
-      };
-      grid.innerHTML = `
-        <div class="urgency-card low">Low: ${counts.low}</div>
-        <div class="urgency-card moderate">Moderate: ${counts.moderate}</div>
-        <div class="urgency-card elevated">Elevated: ${counts.elevated}</div>
-        <div class="urgency-card crisis">Crisis: ${counts.crisis}</div>
-      `;
-    }
-
-    function renderCounselors(){
-      const tbody = document.getElementById('counselorTable');
-      tbody.innerHTML = '';
-      counselors.forEach(c=>{
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${c.name}</td>
-          <td>${c.email}</td>
-          <td>
-            <button class="btn" onclick="openCounselorProfile('${c.id}')">View</button>
-            <button class="btn-secondary btn" onclick="editCounselor('${c.id}')">Edit</button>
-            <button class="btn-danger btn" onclick="removeCounselor('${c.id}')">Remove</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    function renderStudents(){
-      const tbody = document.getElementById('studentTable');
-      tbody.innerHTML = '';
-      students.forEach(s=>{
-        const counselor = counselors.find(c=>c.id===s.counselorId);
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${s.name}</td>
-          <td>${s.grade}</td>
-          <td>${counselor ? counselor.email : 'Unassigned'}</td>
-          <td>
-            <button class="btn" onclick="openStudentProfile('${s.id}')">View</button>
-            <button class="btn-secondary btn" onclick="editStudent('${s.id}')">Edit</button>
-            <button class="btn-danger btn" onclick="removeStudent('${s.id}')">Remove</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    function renderSchools(){
-      const tbody = document.getElementById('schoolTable');
-      tbody.innerHTML = '';
-      schools.forEach(sc=>{
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${sc.name}</td>
-          <td>${sc.district}</td>
-          <td>
-            <button class="btn-secondary btn" onclick="editSchool('${sc.id}')">Edit</button>
-            <button class="btn-danger btn" onclick="removeSchool('${sc.id}')">Remove</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    function renderNotifications(){
-      const list = document.getElementById('notificationList');
-      list.innerHTML = '';
-      messages.forEach(m=>{
-        const student = students.find(s=>s.id===m.studentId);
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerHTML = `
-          <h3>${student ? student.name : 'Unknown'} • ${m.urgency.toUpperCase()}</h3>
-          <p>${m.text}</p>
-          <p>${m.ts}</p>
-          <button class="btn" onclick="markRead('${m.id}')">${m.read ? 'Read' : 'Mark as Read'}</button>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    function renderCalendar(){
-      const grid = document.getElementById('calendarGrid');
-      grid.innerHTML = '';
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = now.getMonth();
-      const firstDay = new Date(y,m,1).getDay();
-      const daysInMonth = new Date(y,m+1,0).getDate();
-      const weekdays=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-      weekdays.forEach(d=>{
-        const w=document.createElement("div");
-        w.className="calendar-weekday";
-        w.textContent=d;
-        grid.appendChild(w);
-      });
-      for(let i=0;i<firstDay;i++){
-        const empty=document.createElement("div");
-        empty.className="calendar-day";
-        grid.appendChild(empty);
-      }
-      for(let d=1; d<=daysInMonth; d++){
-        const cell=document.createElement("div");
-        cell.className="calendar-day";
-        const dateStr = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-        const dayAppts = appointments.filter(a=>a.date===dateStr);
-        cell.innerHTML = `<strong>${d}</strong><br>` + dayAppts.map(a=>{
-          const st = students.find(s=>s.id===a.studentId);
-          return `${st ? st.name : 'Student'} ${a.time}`;
-        }).join("<br>");
-        grid.appendChild(cell);
-      }
-    }
-
-    function updateCrisisBadge(){
-      const crises = messages.filter(m=>m.urgency==='crisis').length;
-      document.getElementById('crisisCount').textContent = `${crises} Crises`;
-    }
-
-    // ================== CRUD ==================
-    let editingCounselorId = null;
-    function saveCounselor(){
-      const name = counselorName.value.trim();
-      const email = counselorEmail.value.trim();
-      if(!name || !email) return alert("Fill all fields");
-      if(editingCounselorId){
-        const c = counselors.find(x=>x.id===editingCounselorId);
-        c.name=name; c.email=email;
-      } else {
-        counselors.push({ id:`c${Date.now()}`, name, email });
-      }
-      editingCounselorId=null;
-      closeModal('counselorModal');
-      renderCounselors();
-      populateCounselorSelect();
-      renderOverview();
-    }
-    function editCounselor(id){
-      editingCounselorId=id;
-      const c = counselors.find(x=>x.id===id);
-      counselorName.value=c.name;
-      counselorEmail.value=c.email;
-      openModal('counselorModal');
-    }
-    function removeCounselor(id){
-      counselors = counselors.filter(c=>c.id!==id);
-      students = students.map(s=>s.counselorId===id ? {...s, counselorId:null} : s);
-      renderCounselors(); renderStudents(); renderOverview();
-    }
-
-    let editingStudentId=null;
-    function saveStudent(){
-      const name = studentName.value.trim();
-      const grade = studentGrade.value.trim();
-      const counselorId = studentCounselor.value;
-      if(!name || !grade) return alert("Fill all fields");
-      if(editingStudentId){
-        const s = students.find(x=>x.id===editingStudentId);
-        s.name=name; s.grade=grade; s.counselorId=counselorId;
-      } else {
-        students.push({ id:`s${Date.now()}`, name, grade, counselorId });
-      }
-      editingStudentId=null;
-      closeModal('studentModal');
-      renderStudents(); renderOverview();
-    }
-    function editStudent(id){
-      editingStudentId=id;
-      const s = students.find(x=>x.id===id);
-      studentName.value=s.name;
-      studentGrade.value=s.grade;
-      studentCounselor.value=s.counselorId || "";
-      openModal('studentModal');
-    }
-    function removeStudent(id){
-      students = students.filter(s=>s.id!==id);
-      renderStudents(); renderOverview();
-    }
-
-    let editingSchoolId=null;
-    function saveSchool(){
-      const name = schoolNameInput.value.trim();
-      const district = schoolDistrictInput.value.trim();
-      if(!name || !district) return alert("Fill all fields");
-      if(editingSchoolId){
-        const sc = schools.find(x=>x.id===editingSchoolId);
-        sc.name=name; sc.district=district;
-      } else {
-        schools.push({ id:`sc${Date.now()}`, name, district });
-      }
-      editingSchoolId=null;
-      closeModal('schoolModal');
-      renderSchools();
-    }
-    function editSchool(id){
-      editingSchoolId=id;
-      const sc = schools.find(x=>x.id===id);
-      schoolNameInput.value=sc.name;
-      schoolDistrictInput.value=sc.district;
-      openModal('schoolModal');
-    }
-    function removeSchool(id){
-      schools = schools.filter(s=>s.id!==id);
-      renderSchools();
-    }
-
-    function markRead(id){
-      const msg = messages.find(m=>m.id===id);
-      if(msg){ msg.read=true; renderNotifications(); renderOverview(); updateCrisisBadge(); }
-    }
-
-    function populateCounselorSelect(){
-      const sel = document.getElementById('studentCounselor');
-      sel.innerHTML = `<option value=\"\">Unassigned</option>` + counselors.map(c=>`<option value=\"${c.id}\">${c.email}</option>`).join('');
-    }
-
-    // ================== PROFILES ==================
-    function openCounselorProfile(id){
-      const c = counselors.find(x=>x.id===id);
-      counselorProfileTitle.textContent = c.name;
-      counselorDetails.innerHTML = `<p><strong>Email:</strong> ${c.email}</p>`;
-      counselorNotes.innerHTML = (notes[id]||[]).map(n=>`<div>${n.ts} — ${n.text}</div>`).join("") || "No notes.";
-      counselorMessages.innerHTML = messages.filter(m=>m.counselorId===id).map(m=>`<div>${m.ts} — ${m.text}</div>`).join("") || "No messages.";
-      openModal('counselorProfileModal');
-    }
-
-    function openStudentProfile(id){
-      const s = students.find(x=>x.id===id);
-      studentProfileTitle.textContent = s.name;
-      studentDetails.innerHTML = `<p><strong>Grade:</strong> ${s.grade}</p>`;
-      studentNotes.innerHTML = (notes[id]||[]).map(n=>`<div>${n.ts} — ${n.text}</div>`).join("") || "No notes.";
-      studentMessages.innerHTML = messages.filter(m=>m.studentId===id).map(m=>`<div>${m.ts} — ${m.text}</div>`).join("") || "No messages.";
-      openModal('studentProfileModal');
-    }
-
-    document.querySelectorAll('.tabs button').forEach(btn=>{
-      btn.onclick = ()=>{
-        const wrapper = btn.parentElement.parentElement;
-        wrapper.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        wrapper.querySelectorAll('div[id]').forEach(div=>{
-          if(div.id.includes('Details') || div.id.includes('Notes') || div.id.includes('Messages')){
-            div.style.display = (div.id===btn.dataset.tab) ? 'block' : 'none';
-          }
-        });
-      };
-    });
-
-    // ================== DARK MODE ==================
-    const darkToggle = document.getElementById('darkToggle');
-    darkToggle.onclick = ()=>{
-      document.body.classList.toggle('dark');
-      darkToggle.textContent = document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
-    };
-
-    // ================== PWA SERVICE WORKER ==================
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("service-worker.js")
-          .catch(err => console.warn("Service worker registration failed:", err));
-      });
-    }
-  </script>
 </body>
 </html>
