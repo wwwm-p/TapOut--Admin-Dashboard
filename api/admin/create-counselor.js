@@ -2,9 +2,7 @@ import pkg from 'pg'
 import bcrypt from 'bcrypt'
 
 const { Pool } = pkg
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-})
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
 export default async function handler(req, res) {
   try {
