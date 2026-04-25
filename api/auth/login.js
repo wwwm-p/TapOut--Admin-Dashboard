@@ -3,11 +3,18 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
 const { Pool } = pkg
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+})
 
 export default async function handler(req, res) {
   try {
     const { email, password } = req.body
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Missing credentials' })
+    }
 
     const result = await pool.query(
       'SELECT * FROM users WHERE email=$1',
@@ -34,7 +41,7 @@ export default async function handler(req, res) {
       process.env.JWT_SECRET
     )
 
-    res.json({ token, user })
+    res.status(200).json({ token, user })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
