@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt'
 const { Pool } = pkg
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
-export default async function handler(req, res) {
+export defaultq async function handler(req, res) {
   try {
     const { name, email, password, school_id } = req.body
 
