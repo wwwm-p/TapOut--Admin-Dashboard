@@ -2,11 +2,18 @@ import pkg from 'pg'
 import bcrypt from 'bcrypt'
 
 const { Pool } = pkg
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
-export defaultq async function handler(req, res) {
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+})
+
+export default async function handler(req, res) {
   try {
     const { name, email, password, school_id } = req.body
+
+    if (!name || !email || !password || !school_id) {
+      return res.status(400).json({ error: 'Missing fields' })
+    }
 
     const hash = await bcrypt.hash(password, 10)
 
@@ -17,7 +24,7 @@ export defaultq async function handler(req, res) {
       [name, email, hash, school_id]
     )
 
-    res.json(result.rows[0])
+    res.status(200).json(result.rows[0])
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
