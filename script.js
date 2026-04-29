@@ -1,6 +1,8 @@
 // ==========================
-// ADMIN DASHBOARD JS (SIS-ready)
+// ADMIN DASHBOARD JS (CONNECTED)
 // ==========================
+
+const API_BASE = "https://YOUR-ADMIN-APP.vercel.app";
 
 // -------------------
 // Section Switching
@@ -34,15 +36,39 @@ function addAudit(user, role, action){
 }
 
 // -------------------
-// Fetch Admin Data → Counselors + Assigned Students
+// Fetch Admin Data
 // -------------------
 async function fetchAdminData(){
   try {
-    const res = await fetch('/api/editcounselor?action=counselors_with_students');
-    const json = await res.json();
-    if(!json.success) return { counselors: [] };
-    return { counselors: json.counselors || [] };
-  } catch(err){ console.error(err); return { counselors: [] }; }
+    const user = JSON.parse(localStorage.getItem("user"));
+    const school_id = user?.school_id;
+
+    // GET counselors
+    const res = await fetch(`${API_BASE}/api/admin/get-counselors?school_id=${school_id}`);
+    const counselors = await res.json();
+
+    // GET students
+    const res2 = await fetch(`${API_BASE}/api/admin/get-students?school_id=${school_id}`);
+    const students = await res2.json();
+
+    // Attach students to counselors
+    const map = {};
+    counselors.forEach(c => {
+      map[c.id] = { ...c, students: [] };
+    });
+
+    students.forEach(s => {
+      if (map[s.counselor_id]) {
+        map[s.counselor_id].students.push(s);
+      }
+    });
+
+    return { counselors: Object.values(map) };
+
+  } catch(err){ 
+    console.error(err); 
+    return { counselors: [] }; 
+  }
 }
 
 // -------------------
@@ -51,13 +77,13 @@ async function fetchAdminData(){
 async function loadData(){
   const { counselors } = await fetchAdminData();
 
-  // Render counselor cards
   const container = document.getElementById('counselorCards');
   if(container){
     container.innerHTML='';
+
     counselors.forEach(c=>{
       const studentsHTML = (c.students || []).map(s=>`
-        <li>${s.first_name} ${s.last_name} (ID: ${s.student_id}, Grade: ${s.grade || '-'})</li>
+        <li>${s.first_name} ${s.last_name} (ID: ${s.student_id})</li>
       `).join('');
 
       const card = document.createElement('div');
@@ -65,82 +91,102 @@ async function loadData(){
       card.innerHTML = `
         <h3>${c.name}</h3>
         <p>Email: ${c.email}</p>
-        <p>Status: ${c.active ? 'Active' : 'Hidden'}</p>
+        <p>Status: ${c.is_visible ? 'Active' : 'Hidden'}</p>
         <p>Assigned Students (${(c.students||[]).length}):</p>
         <ul>${studentsHTML || '<li>No students assigned</li>'}</ul>
-        <button class="btn" onclick="toggleCounselor(${c.id}, ${c.active})">
-          ${c.active ? 'Hide' : 'Show'}
+        <button class="btn" onclick="toggleCounselor('${c.id}', ${c.is_visible})">
+          ${c.is_visible ? 'Hide' : 'Show'}
         </button>
       `;
       container.appendChild(card);
     });
   }
 
-  // Populate dropdown for assigning students
   populateCounselorDropdown(counselors);
 
-  // Update counselor count badge if exists
   const countBadge = document.getElementById('totalCounselors');
   if(countBadge) countBadge.innerText = counselors.length;
 }
 
 // -------------------
-// Toggle Counselor Active Status
+// Toggle Counselor Visibility
 // -------------------
 async function toggleCounselor(id, currentStatus){
   try {
-    const res = await fetch('/api/editcounselor', {
+    const res = await fetch(`${API_BASE}/api/admin/edit-counselor`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'update_counselor', id, active:!currentStatus })
+      body: JSON.stringify({
+        id,
+        is_visible: !currentStatus
+      })
     });
+
     const data = await res.json();
-    if(data.success){
-      addAudit('Admin','Admin',`${currentStatus?'Hidden':'Activated'} counselor ID ${id}`);
+
+    if(data){
+      addAudit('Admin','Admin',`${currentStatus?'Hidden':'Activated'} counselor`);
       await loadData();
     }
+
   } catch(err){ console.error(err); }
 }
 
 // -------------------
-// Populate dropdown for adding students
+// Populate dropdown
 // -------------------
 function populateCounselorDropdown(counselors){
   const dropdown = document.getElementById('newStudentCounselor'); 
   if(!dropdown) return;
+
   dropdown.innerHTML='';
-  counselors.filter(c=>c.active).forEach(c=>{
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = `${c.name} (${c.email})`; // show email for clarity
-    dropdown.appendChild(opt);
-  });
+
+  counselors
+    .filter(c=>c.is_visible)
+    .forEach(c=>{
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.name} (${c.email})`;
+      dropdown.appendChild(opt);
+    });
 }
 
 // -------------------
-// Add / Remove Counselors
+// Add Counselor
 // -------------------
 async function addCounselor(){
   const name = document.getElementById('newCounselorName')?.value.trim();
   const email = document.getElementById('newCounselorEmail')?.value.trim();
-  if(!name||!email){ alert('Enter both username and email'); return; }
-  const username = email.split('@')[0];
+  const password = "default123"; // you can improve later
+
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  if(!name || !email){
+    alert('Enter name and email');
+    return;
+  }
 
   try {
-    const res = await fetch('/api/counselors',{ 
+    await fetch(`${API_BASE}/api/admin/create-counselor`,{ 
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,email,username})
+      body:JSON.stringify({
+        name,
+        email,
+        password,
+        school_id: user.school_id
+      })
     });
-    const data = await res.json();
-    if(data.success){
-      addAudit('Admin','Admin',`Added counselor ${name}`);
-      await loadData();
-      closeModal('addCounselorModal');
-      document.getElementById('newCounselorName').value='';
-      document.getElementById('newCounselorEmail').value='';
-    } else alert('Failed to add counselor');
-  } catch(err){ console.error(err); alert('Network error'); }
+
+    addAudit('Admin','Admin',`Added counselor ${name}`);
+    await loadData();
+
+    closeModal('addCounselorModal');
+
+  } catch(err){ 
+    console.error(err); 
+    alert('Error creating counselor'); 
+  }
 }
 
 // -------------------
@@ -148,5 +194,5 @@ async function addCounselor(){
 // -------------------
 window.onload = async ()=>{
   await loadData();
-  setInterval(loadData,5000); // refresh dashboard every 5s
+  setInterval(loadData,5000);
 };
