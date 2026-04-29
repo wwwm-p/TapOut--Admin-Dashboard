@@ -1,7 +1,3 @@
-// ==========================
-// ADMIN DASHBOARD JS (FINAL FIXED)
-// ==========================
-
 const API_BASE = "https://tap-out-admin-dashboard.vercel.app";
 
 // -------------------
@@ -36,7 +32,7 @@ function addAudit(user, role, action){
 }
 
 // -------------------
-// Fetch Admin Data
+// FETCH ADMIN DATA (FIXED SAFE PARSING)
 // -------------------
 async function fetchAdminData(){
   try {
@@ -46,16 +42,21 @@ async function fetchAdminData(){
     if (!school_id) throw new Error("Missing school_id");
 
     const res = await fetch(`${API_BASE}/api/admin/get-counselors?school_id=${school_id}`);
-    const counselors = await res.json();
-
     const res2 = await fetch(`${API_BASE}/api/admin/get-students?school_id=${school_id}`);
-    const students = await res2.json();
 
-    if (!Array.isArray(counselors) || !Array.isArray(students)) {
-      return { counselors: [] };
-    }
+    const counselorsRaw = await res.json();
+    const studentsRaw = await res2.json();
+
+    const counselors = Array.isArray(counselorsRaw)
+      ? counselorsRaw
+      : (counselorsRaw.data || []);
+
+    const students = Array.isArray(studentsRaw)
+      ? studentsRaw
+      : (studentsRaw.data || []);
 
     const map = {};
+
     counselors.forEach(c => {
       map[c.id] = { ...c, students: [] };
     });
@@ -75,7 +76,7 @@ async function fetchAdminData(){
 }
 
 // -------------------
-// Load Dashboard
+// LOAD DASHBOARD
 // -------------------
 async function loadData(){
   const { counselors } = await fetchAdminData();
@@ -117,7 +118,7 @@ async function loadData(){
 }
 
 // -------------------
-// Toggle Counselor Visibility
+// TOGGLE COUNSELOR (FIXED SAFETY)
 // -------------------
 async function toggleCounselor(id, currentStatus){
   try {
@@ -132,7 +133,7 @@ async function toggleCounselor(id, currentStatus){
 
     const data = await res.json();
 
-    if (data){
+    if (data?.success || data?.id){
       addAudit('Admin','Admin',`${currentStatus ? 'Hidden' : 'Activated'} counselor`);
       await loadData();
     }
@@ -143,7 +144,7 @@ async function toggleCounselor(id, currentStatus){
 }
 
 // -------------------
-// Dropdown
+// DROPDOWN
 // -------------------
 function populateCounselorDropdown(counselors){
   const dropdown = document.getElementById('newStudentCounselor'); 
@@ -162,7 +163,7 @@ function populateCounselorDropdown(counselors){
 }
 
 // -------------------
-// Add Counselor
+// ADD COUNSELOR
 // -------------------
 async function addCounselor(){
   const name = document.getElementById('newCounselorName')?.value.trim();
@@ -176,7 +177,7 @@ async function addCounselor(){
   }
 
   try {
-    await fetch(`${API_BASE}/api/admin/create-counselor`,{ 
+    const res = await fetch(`${API_BASE}/api/admin/create-counselor`,{ 
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -187,10 +188,15 @@ async function addCounselor(){
       })
     });
 
-    addAudit('Admin','Admin',`Added counselor ${name}`);
+    const data = await res.json();
 
-    await loadData();
-    closeModal('addCounselorModal');
+    if (!data?.error){
+      addAudit('Admin','Admin',`Added counselor ${name}`);
+      await loadData();
+      closeModal('addCounselorModal');
+    } else {
+      alert(data.error);
+    }
 
   } catch(err){ 
     console.error("addCounselor error:", err); 
