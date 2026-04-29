@@ -1,8 +1,8 @@
 // ==========================
-// ADMIN DASHBOARD JS (CONNECTED)
+// ADMIN DASHBOARD JS (FINAL FIXED)
 // ==========================
 
-const API_BASE = "https://tap-out-admin-dashboard.vercel.app/";
+const API_BASE = "https://tap-out-admin-dashboard.vercel.app";
 
 // -------------------
 // Section Switching
@@ -10,6 +10,7 @@ const API_BASE = "https://tap-out-admin-dashboard.vercel.app/";
 function showSection(sectionId){
   document.querySelectorAll('.main .section').forEach(sec => sec.style.display='none');
   document.getElementById(sectionId).style.display='block';
+
   document.querySelectorAll('.sidebar a').forEach(link => link.classList.remove('active'));
   document.querySelector(`.sidebar a[onclick="showSection('${sectionId}')"]`)?.classList.add('active');
 }
@@ -18,19 +19,18 @@ function showSection(sectionId){
 // Modals
 // -------------------
 function openModal(id){ 
-  const modal = document.getElementById(id);
-  if(modal) modal.style.display='flex'; 
+  document.getElementById(id)?.style && (document.getElementById(id).style.display='flex');
 }
+
 function closeModal(id){ 
-  const modal = document.getElementById(id);
-  if(modal) modal.style.display='none'; 
+  document.getElementById(id)?.style && (document.getElementById(id).style.display='none');
 }
 
 // -------------------
 // Audit Log
 // -------------------
 function addAudit(user, role, action){
-  const logs = JSON.parse(localStorage.getItem('adminAudit')||'[]');
+  const logs = JSON.parse(localStorage.getItem('adminAudit') || '[]');
   logs.push({ time: new Date().toLocaleString(), user, role, action });
   localStorage.setItem('adminAudit', JSON.stringify(logs));
 }
@@ -43,22 +43,25 @@ async function fetchAdminData(){
     const user = JSON.parse(localStorage.getItem("user"));
     const school_id = user?.school_id;
 
-    // GET counselors
+    if (!school_id) throw new Error("Missing school_id");
+
     const res = await fetch(`${API_BASE}/api/admin/get-counselors?school_id=${school_id}`);
     const counselors = await res.json();
 
-    // GET students
     const res2 = await fetch(`${API_BASE}/api/admin/get-students?school_id=${school_id}`);
     const students = await res2.json();
 
-    // Attach students to counselors
+    if (!Array.isArray(counselors) || !Array.isArray(students)) {
+      return { counselors: [] };
+    }
+
     const map = {};
     counselors.forEach(c => {
       map[c.id] = { ...c, students: [] };
     });
 
     students.forEach(s => {
-      if (map[s.counselor_id]) {
+      if (s.counselor_id && map[s.counselor_id]) {
         map[s.counselor_id].students.push(s);
       }
     });
@@ -66,46 +69,51 @@ async function fetchAdminData(){
     return { counselors: Object.values(map) };
 
   } catch(err){ 
-    console.error(err); 
+    console.error("fetchAdminData error:", err); 
     return { counselors: [] }; 
   }
 }
 
 // -------------------
-// Load & Render Dashboard
+// Load Dashboard
 // -------------------
 async function loadData(){
   const { counselors } = await fetchAdminData();
 
   const container = document.getElementById('counselorCards');
-  if(container){
-    container.innerHTML='';
+  if (!container) return;
 
-    counselors.forEach(c=>{
-      const studentsHTML = (c.students || []).map(s=>`
-        <li>${s.first_name} ${s.last_name} (ID: ${s.student_id})</li>
-      `).join('');
+  container.innerHTML = '';
 
-      const card = document.createElement('div');
-      card.className='card';
-      card.innerHTML = `
-        <h3>${c.name}</h3>
-        <p>Email: ${c.email}</p>
-        <p>Status: ${c.is_visible ? 'Active' : 'Hidden'}</p>
-        <p>Assigned Students (${(c.students||[]).length}):</p>
-        <ul>${studentsHTML || '<li>No students assigned</li>'}</ul>
-        <button class="btn" onclick="toggleCounselor('${c.id}', ${c.is_visible})">
-          ${c.is_visible ? 'Hide' : 'Show'}
-        </button>
-      `;
-      container.appendChild(card);
-    });
-  }
+  counselors.forEach(c => {
+
+    const studentsHTML = (c.students || []).map(s => `
+      <li>${s.first_name} ${s.last_name} (ID: ${s.student_id})</li>
+    `).join('');
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    card.innerHTML = `
+      <h3>${c.name || "No Name"}</h3>
+      <p>Email: ${c.email || "-"}</p>
+      <p>Status: ${c.is_visible ? 'Active' : 'Hidden'}</p>
+
+      <p>Assigned Students (${(c.students || []).length}):</p>
+      <ul>${studentsHTML || '<li>No students assigned</li>'}</ul>
+
+      <button class="btn" onclick="toggleCounselor('${c.id}', ${c.is_visible})">
+        ${c.is_visible ? 'Hide' : 'Show'}
+      </button>
+    `;
+
+    container.appendChild(card);
+  });
 
   populateCounselorDropdown(counselors);
 
   const countBadge = document.getElementById('totalCounselors');
-  if(countBadge) countBadge.innerText = counselors.length;
+  if (countBadge) countBadge.innerText = counselors.length;
 }
 
 // -------------------
@@ -114,8 +122,8 @@ async function loadData(){
 async function toggleCounselor(id, currentStatus){
   try {
     const res = await fetch(`${API_BASE}/api/admin/edit-counselor`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         id,
         is_visible: !currentStatus
@@ -124,29 +132,31 @@ async function toggleCounselor(id, currentStatus){
 
     const data = await res.json();
 
-    if(data){
-      addAudit('Admin','Admin',`${currentStatus?'Hidden':'Activated'} counselor`);
+    if (data){
+      addAudit('Admin','Admin',`${currentStatus ? 'Hidden' : 'Activated'} counselor`);
       await loadData();
     }
 
-  } catch(err){ console.error(err); }
+  } catch(err){ 
+    console.error("toggleCounselor error:", err); 
+  }
 }
 
 // -------------------
-// Populate dropdown
+// Dropdown
 // -------------------
 function populateCounselorDropdown(counselors){
   const dropdown = document.getElementById('newStudentCounselor'); 
-  if(!dropdown) return;
+  if (!dropdown) return;
 
-  dropdown.innerHTML='';
+  dropdown.innerHTML = '';
 
   counselors
-    .filter(c=>c.is_visible)
-    .forEach(c=>{
+    .filter(c => c.is_visible === true)
+    .forEach(c => {
       const opt = document.createElement('option');
       opt.value = c.id;
-      opt.textContent = `${c.name} (${c.email})`;
+      opt.textContent = `${c.name || "Unnamed"} (${c.email})`;
       dropdown.appendChild(opt);
     });
 }
@@ -157,11 +167,10 @@ function populateCounselorDropdown(counselors){
 async function addCounselor(){
   const name = document.getElementById('newCounselorName')?.value.trim();
   const email = document.getElementById('newCounselorEmail')?.value.trim();
-  const password = "default123"; // you can improve later
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  if(!name || !email){
+  if (!name || !email){
     alert('Enter name and email');
     return;
   }
@@ -170,21 +179,21 @@ async function addCounselor(){
     await fetch(`${API_BASE}/api/admin/create-counselor`,{ 
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
+      body: JSON.stringify({
         name,
         email,
-        password,
+        password: "default123",
         school_id: user.school_id
       })
     });
 
     addAudit('Admin','Admin',`Added counselor ${name}`);
-    await loadData();
 
+    await loadData();
     closeModal('addCounselorModal');
 
   } catch(err){ 
-    console.error(err); 
+    console.error("addCounselor error:", err); 
     alert('Error creating counselor'); 
   }
 }
@@ -192,7 +201,7 @@ async function addCounselor(){
 // -------------------
 // INIT
 // -------------------
-window.onload = async ()=>{
+window.onload = async () => {
   await loadData();
-  setInterval(loadData,5000);
+  setInterval(loadData, 5000);
 };
