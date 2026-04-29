@@ -2,7 +2,7 @@
 // ADMIN DASHBOARD JS (CONNECTED)
 // ==========================
 
-const API_BASE = "https://YOUR-ADMIN-APP.vercel.app";
+const API_BASE = "https://tap-out-admin-dashboard.vercel.app/";
 
 // -------------------
 // Section Switching
