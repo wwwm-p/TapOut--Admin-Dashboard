@@ -1,4 +1,4 @@
-const API_BASE = "https://tap-out-admin-dashboard.vercel.app";
+const API_BASE = "https://sis-api-smoky.vercel.app";
 
 // -------------------
 // Section Switching
@@ -23,16 +23,16 @@ function closeModal(id){
 }
 
 // -------------------
-// Audit Log
+// Audit Log (frontend cache only for now)
 // -------------------
 function addAudit(user, role, action){
   const logs = JSON.parse(localStorage.getItem('adminAudit') || '[]');
-  logs.push({ time: new Date().toLocaleString(), user, role, action });
+  logs.push({ time: new Date().toISOString(), user, role, action });
   localStorage.setItem('adminAudit', JSON.stringify(logs));
 }
 
 // -------------------
-// FETCH ADMIN DATA (FIXED SAFE PARSING)
+// FETCH ADMIN DATA
 // -------------------
 async function fetchAdminData(){
   try {
@@ -89,7 +89,7 @@ async function loadData(){
   counselors.forEach(c => {
 
     const studentsHTML = (c.students || []).map(s => `
-      <li>${s.first_name} ${s.last_name} (ID: ${s.student_id})</li>
+      <li>${s.first_name} ${s.last_name} (ID: ${s.sis_student_id || s.student_id})</li>
     `).join('');
 
     const card = document.createElement('div');
@@ -118,7 +118,7 @@ async function loadData(){
 }
 
 // -------------------
-// TOGGLE COUNSELOR (FIXED SAFETY)
+// TOGGLE COUNSELOR
 // -------------------
 async function toggleCounselor(id, currentStatus){
   try {
